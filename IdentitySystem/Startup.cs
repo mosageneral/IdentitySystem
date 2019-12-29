@@ -6,9 +6,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Models.AppDBModel;
+using Models.IdentityModels;
 
 namespace IdentitySystem
 {
@@ -30,8 +34,10 @@ namespace IdentitySystem
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
-
-
+            //Implenting EntityFrameWork Services For Identity Server
+            services.AddDbContext<AppDBContext>(options => options.UseSqlServer(Configuration["Data:IdentitySystem:ConnectionString"]));
+            services.AddIdentity<AppUser, IdentityRole>(opts => { opts.User.RequireUniqueEmail = true; opts.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"; opts.Password.RequiredLength = 6; opts.Password.RequireNonAlphanumeric = false; opts.Password.RequireLowercase = false; opts.Password.RequireUppercase = false; opts.Password.RequireDigit = false; }).AddEntityFrameworkStores<AppDBContext>().AddDefaultTokenProviders();
+            services.ConfigureApplicationCookie(opts => opts.LoginPath = "/Users/Account/Login");
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
@@ -51,6 +57,7 @@ namespace IdentitySystem
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseAuthentication();// Here We Tell  The App To Use Auth
             app.UseCookiePolicy();
 
             app.UseMvc(routes =>
@@ -58,6 +65,10 @@ namespace IdentitySystem
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
+                routes.MapRoute(
+                      name: "areas",
+                      template: "{area:exists}/{controller=Home}/{action=Index}/{id?}"
+         );
             });
         }
     }
